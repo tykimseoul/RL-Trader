@@ -7,29 +7,27 @@ from datetime import datetime, date
 
 load_dotenv()
 
-columns = ['Time', 'Current', 'AD', 'ADR', 'Trading Volume', 'Dollar Volume']
+columns = ['Time', 'Price', 'Net Change', 'Sell', 'Buy', 'Trading Volume']
 kospi_columns = ['Time', 'Price', 'Net Change', 'Trading Volume', 'Dollar Volume']
 exg_columns = ['Inquiry', 'Standard Rate', 'Net Change', 'Cash Buy', 'Cash Sell']
 
 
-def crawl_intraday_data(code):
+def crawl_intraday_data(code, time):
     intra_df = pd.DataFrame()
-    for i in range(1, 22):
+    for i in range(1, 41):
         print("page", i)
-        page_df = pd.read_html(os.getenv("INTRADAY_DATA_SOURCE_ADDRESS").format(code=code, page=i))[10]
+        page_df = pd.read_html(os.getenv("INTRADAY_DATA_SOURCE_ADDRESS").format(code=code, time=time, page=i))[0]
         intra_df = intra_df.append(page_df)
-
-    crawled_date = intra_df[intra_df.columns[0]].iloc[0].split(' ')[0]
-    intra_df[intra_df.columns[0]] = intra_df[intra_df.columns[0]].str.split(' ', n=1, expand=True)[1]
-    intra_df.sort_values(intra_df.columns[0], inplace=True)
-    intra_df.drop_duplicates(subset=intra_df.columns[0], keep='first', inplace=True)
+    intra_df.dropna(inplace=True)
+    intra_df.drop(intra_df.columns[6], axis=1, inplace=True)
     intra_df.reset_index(inplace=True, drop=True)
     intra_df.columns = columns
-    intra_df['AD'] = intra_df['Current'] - intra_df.iloc[0]['Current']
-    intra_df['ADR'] = intra_df['ADR'] / 100
+    yesterday_df = pd.read_html(os.getenv("DAILY_DATA_SOURCE_ADDRESS").format(code=code))[0]
+    yesterday_df.dropna(inplace=True)
+    price_yesterday = yesterday_df[yesterday_df.columns[1]].iloc[1]
+    intra_df['Net Change'] = intra_df['Price'] - price_yesterday
     print(intra_df)
-    print(intra_df.shape)
-    return intra_df, crawled_date
+    return intra_df
 
 
 def save_intraday_data(code, date, df):
@@ -113,9 +111,9 @@ def retrieve_exchange_data(date):
 
 codes = json.loads(os.getenv("RELEVANT_STOCK_CODES"))
 for code in codes:
-    df, date = crawl_intraday_data(code)
-    save_intraday_data(code, date, df)
-    retrieve_intraday_data(code, date)
+    df = crawl_intraday_data(code, '20191226230000')
+    save_intraday_data(code, '12/26', df)
+    retrieve_intraday_data(code, '12/26')
 
 kospi_df = crawl_intraday_kospi_data('20191226230000')
 save_intraday_kospi_data('12/26', kospi_df)
