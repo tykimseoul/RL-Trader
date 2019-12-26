@@ -8,6 +8,7 @@ from datetime import datetime, date
 load_dotenv()
 
 columns = ['Time', 'Current', 'AD', 'ADR', 'Trading Volume', 'Dollar Volume']
+kospi_columns = ['Time', 'Price', 'Net Change', 'Trading Volume', 'Dollar Volume']
 exg_columns = ['Inquiry', 'Standard Rate', 'Net Change', 'Cash Buy', 'Cash Sell']
 
 
@@ -41,6 +42,39 @@ def retrieve_intraday_data(code, date):
     data = firebase.get('/stock/{code}/{date}'.format(code=code, date=date), None)
     result = pd.DataFrame.from_dict(data, orient='index')
     result = result[columns]
+    result.reset_index(inplace=True, drop=True)
+    print(result)
+    return result
+
+
+def crawl_intraday_kospi_data(time):
+    kospi_df = pd.DataFrame()
+    for i in range(1, 3):
+        print("Crawling kospi page", i)
+        page_df = pd.read_html(os.getenv("INTRADAY_KOSPI_SOURCE_ADDRESS").format(time=time, page=i))[0]
+        kospi_df = kospi_df.append(page_df)
+    kospi_df.dropna(inplace=True)
+    kospi_df.drop(kospi_df.columns[3], axis=1, inplace=True)
+    kospi_df.columns = kospi_columns
+    yesterday_df = pd.read_html(os.getenv("DAILY_KOSPI_SOURCE_ADDRESS"))[0]
+    yesterday_df.dropna(inplace=True)
+    price_yesterday = yesterday_df[yesterday_df.columns[1]].iloc[1]
+    kospi_df['Net Change'] = kospi_df['Price'] - price_yesterday
+    kospi_df.reset_index(inplace=True, drop=True)
+    print(kospi_df)
+    return kospi_df
+
+
+def save_intraday_kospi_data(date, df):
+    firebase = frb.FirebaseApplication(os.getenv("FIREBASE_ADDRESS"), None)
+    df.apply(lambda r: firebase.post('/stock/kospi/{date}'.format(date=date), json.loads(r.to_json())), axis=1)
+
+
+def retrieve_intraday_kospi_data(date):
+    firebase = frb.FirebaseApplication(os.getenv("FIREBASE_ADDRESS"), None)
+    data = firebase.get('/stock/kospi/{date}'.format(date=date), None)
+    result = pd.DataFrame.from_dict(data, orient='index')
+    result = result[kospi_columns]
     result.reset_index(inplace=True, drop=True)
     print(result)
     return result
@@ -82,6 +116,10 @@ for code in codes:
     df, date = crawl_intraday_data(code)
     save_intraday_data(code, date, df)
     retrieve_intraday_data(code, date)
+
+kospi_df = crawl_intraday_kospi_data('20191226230000')
+save_intraday_kospi_data('12/26', kospi_df)
+retrieve_intraday_kospi_data('12/26')
 
 exg_df = crawl_exchange_rate()
 save_exchange_data(exg_df)
