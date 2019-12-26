@@ -13,7 +13,7 @@ stock_name, window_size, episode_count = sys.argv[1], int(sys.argv[2]), int(sys.
 agent = Agent(window_size)
 data = get_stock_data(stock_name, '2019-06-01', '2019-10-01')
 l = len(data) - 1
-batch_size = 32
+batch_size = 64
 profits = []
 
 for e in range(episode_count + 1):
@@ -56,7 +56,7 @@ for e in range(episode_count + 1):
         if len(agent.memory) > batch_size:
             agent.expReplay(batch_size)
 
-    if e % 50 == 0:
+    if e % 100 == 0:
         agent.model.save('model/model_ep' + str(e))
 
 plt.plot(profits)
