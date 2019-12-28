@@ -4,10 +4,12 @@ from pandas_datareader import data
 from time import gmtime
 from time import strftime
 
-
 # prints formatted price
+from csv_reader import intraday_from_csv
+
+
 def format_price(n):
-    return ("-$" if n < 0 else "$") + "{0:.2f}".format(abs(n))
+    return ("-" if n < 0 else '') + "{0:.0f}".format(abs(n))
 
 
 def format_time(t):
@@ -16,12 +18,15 @@ def format_time(t):
 
 # returns the vector containing stock data from a fixed file
 def get_stock_data(key, start, end):
-    # User pandas_reader.data.DataReader to load the desired data. As simple as that.
-    panel_data = data.DataReader(key, 'yahoo', start, end)
-
-    # Getting just the adjusted closing prices. This will return a Pandas DataFrame
-    # The index in this DataFrame is the major index of the panel_data.
-    return panel_data['Close'].tolist()
+    # # User pandas_reader.data.DataReader to load the desired data. As simple as that.
+    # panel_data = data.DataReader(key, 'yahoo', start, end)
+    #
+    # # Getting just the adjusted closing prices. This will return a Pandas DataFrame
+    # # The index in this DataFrame is the major index of the panel_data.
+    # return panel_data['Close'].tolist()
+    data = intraday_from_csv(start, end)
+    print('data length: ', len(data))
+    return data
 
 
 # returns the sigmoid

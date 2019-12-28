@@ -14,8 +14,7 @@ model = load_model('model/'+model_name)
 window_size = model.layers[0].input.shape.as_list()[1]
 
 agent = Agent(window_size, True, model_name)
-today = date.today().strftime("%Y-%m-%d")
-data = get_stock_data(stock_name, '2019-10-11', today)
+data = get_stock_data(stock_name, '2019/12/22', '2019/12/24')
 l = len(data) - 1
 batch_size = 32
 
