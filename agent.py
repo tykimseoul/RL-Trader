@@ -22,6 +22,8 @@ class Agent:
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
 
+        self.max_stock_trade = 5
+
         self.model = load_model("model/" + model_name) if is_eval else self._model()
 
     def _model(self):
@@ -30,29 +32,41 @@ class Agent:
         model.add(Dense(units=64, activation="relu"))
         model.add(Dense(units=32, activation="relu"))
         model.add(Dense(units=16, activation="relu"))
-        model.add(Dense(self.action_size, activation="linear"))
+        model.add(Dense(1 + (self.action_size - 1) * self.max_stock_trade, activation="linear"))
         model.compile(loss="mse", optimizer=Adam(lr=0.001))
 
         return model
 
     def act(self, state):
         if not self.is_eval and random.random() <= self.epsilon:
-            return random.randrange(self.action_size)
+            action = random.randrange(self.action_size)
+            if action == 0:
+                return action, 0
+            else:
+                return action, random.randrange(1, self.max_stock_trade + 1)
 
-        options = self.model.predict(state)
-        return np.argmax(options[0])
+        actions = self.model.predict(state)[0]
+        if np.isnan(actions).any():
+            print("warning: nan actions ===============")
+        idx = np.argmax(actions)
+        if idx == 0:
+            return 0, 0
+        else:
+            action = (idx - 1) // self.max_stock_trade + 1
+            count = idx - (action - 1) * self.max_stock_trade
+            return action, count
 
     def replay_experience(self, batch_size):
         memory_size = len(self.memory)
         mini_batch = [self.memory[i] for i in range(memory_size - batch_size + 1, memory_size)]
 
-        for state, action, reward, next_state, done in mini_batch:
+        for state, action, count, reward, next_state, done in mini_batch:
             target = reward
             if not done:
                 target = reward + self.discount * np.amax(self.model.predict(next_state)[0])
 
             target_f = self.model.predict(state)
-            target_f[0][action] = target
+            target_f[0][max(0, (action - 1) * self.max_stock_trade + count)] = target
             self.model.fit(state, target_f, epochs=1, verbose=0)
 
         if self.epsilon > self.epsilon_min:

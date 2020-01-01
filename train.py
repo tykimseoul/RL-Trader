@@ -3,6 +3,7 @@ from functions import *
 import sys
 import matplotlib.pyplot as plt
 import time
+from functools import reduce
 
 if len(sys.argv) != 4:
     print("Usage: python train.py [stock] [window] [episodes]")
@@ -25,24 +26,31 @@ for e in range(episode_count + 1):
     start = time.time()
 
     for t in range(train_data_size):
-        action = agent.act(state)
+        action, count = agent.act(state)
 
         # sit
         next_state = get_state(data, t + 1, window_size + 1)
         reward = 0
         # buy
-        if action == 1:
-            agent.inventory.append(data[t])
-            print("Ep " + str(e) + "/" + str(episode_count) + ":" + str(t) + "\t" + "Buy: " + format_price(data[t]))
+        if action == 1 and count > 0:
+            for _ in range(count):
+                agent.inventory.append(data[t])
+            print('Ep {ep}/{ep_count}:{m}\tBuy {cnt}:\t{price}'.format(ep=e, ep_count=episode_count, m=t, cnt=count, price=format_price(data[t] * count)))
         # sell
-        elif action == 2 and len(agent.inventory) > 0:
-            bought_price = agent.inventory.pop(0)
-            reward = max(data[t] - bought_price, 0)
-            total_profit += data[t] - bought_price
-            print("Ep " + str(e) + "/" + str(episode_count) + ":" + str(t) + "\t" + "Sell: " + format_price(data[t]) + " | Profit: " + format_price(data[t] - bought_price))
+        elif action == 2 and count > 0 and len(agent.inventory) > 0:
+            sellable_count = min(count, len(agent.inventory))
+            purchase_sum = reduce((lambda x, y: x + y), [agent.inventory.pop() for p in range(sellable_count)])
+            profit = data[t] * sellable_count - purchase_sum
+            reward = max(profit, 0)
+            total_profit += profit
+            count = sellable_count
+            print('Ep {ep}/{ep_count}:{m}\tSell {cnt}:\t{price} | Profit:\t{profit}'.format(ep=e, ep_count=episode_count, m=t, cnt=sellable_count, price=format_price(data[t] * sellable_count),
+                                                                                            profit=format_price(profit)))
 
         done = t == train_data_size - 1
-        agent.memory.append((state, action, reward, next_state, done))
+        if action != 0 and count < 1:
+            print("warning: wrong transaction =============")
+        agent.memory.append((state, action, count, reward, next_state, done))
         state = next_state
 
         if done:
