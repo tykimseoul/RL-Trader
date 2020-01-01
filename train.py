@@ -13,42 +13,44 @@ stock_name, window_size, episode_count = sys.argv[1], int(sys.argv[2]), int(sys.
 
 agent = Agent(window_size)
 data = get_stock_data(stock_name, '2019/12/16', '2019/12/21')
-l = len(data) - 1
+train_data_size = len(data) - 1
 batch_size = 64
 profits = []
 
 for e in range(episode_count + 1):
     print("Episode " + str(e) + "/" + str(episode_count))
-    state = get_state(data, 0, window_size + 1)
 
     total_profit = 0
     agent.inventory = []
     start = time.time()
+    state = get_state(data, 0, window_size + 1, len(agent.inventory))
 
-    for t in range(l):
-        action = agent.act(state)
+    for t in range(train_data_size):
+        action, count = agent.act(state)
+        # print('choice', action, count)
 
         # sit
-        next_state = get_state(data, t + 1, window_size + 1)
         reward = 0
         # buy
-        if action[0] == 1 and action[1] > 0:
-            for _ in range(action[1]):
+        if action == 1 and count > 0:
+            for _ in range(count):
                 agent.inventory.append(data[t])
-            print('Ep {ep}/{ep_count}:{m}\tBuy {cnt}:\t{price}'.format(ep=e, ep_count=episode_count, m=t, cnt=action[1], price=format_price(data[t] * action[1])))
+            print('Ep {ep}/{ep_count}:{m}\tBuy {cnt}:\t{price}'.format(ep=e, ep_count=episode_count, m=t, cnt=count, price=format_price(data[t] * count)))
         # sell
-        elif action[0] == 2 and action[1] > 0 and len(agent.inventory) > 0:
-            sellable_count = min(action[1], len(agent.inventory))
+        elif action == 2 and count > 0 and len(agent.inventory) > 0:
+            sellable_count = min(count, len(agent.inventory))
             purchase_sum = reduce((lambda x, y: x + y), [agent.inventory.pop() for p in range(sellable_count)])
             profit = data[t] * sellable_count - purchase_sum
             reward = max(profit, 0)
             total_profit += profit
-            action = (action[0], sellable_count)
+            count = sellable_count
             print('Ep {ep}/{ep_count}:{m}\tSell {cnt}:\t{price} | Profit:\t{profit}'.format(ep=e, ep_count=episode_count, m=t, cnt=sellable_count, price=format_price(data[t] * sellable_count),
                                                                                             profit=format_price(profit)))
 
-        done = True if t == l - 1 else False
-        agent.memory.append((state, action, reward, next_state, done))
+        next_state = get_state(data, t + 1, window_size + 1, len(agent.inventory))
+
+        done = t == train_data_size - 1
+        agent.memory.append((state, action, count, reward, next_state, done))
         state = next_state
 
         if done:
