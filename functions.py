@@ -1,6 +1,4 @@
-import numpy as np
 import math
-from pandas_datareader import data
 from time import gmtime
 from time import strftime
 import pandas as pd
@@ -39,12 +37,3 @@ def get_stock_data(key, start, end):
 # returns the sigmoid
 def sigmoid(x):
     return 1 / (1 + math.exp(-x))
-
-
-# returns an an n-day state representation ending at time t
-def get_state(data, t, n):
-    d = t - n + 1
-    block = data[d:t + 1] if d >= 0 else -d * [data[0]] + data[0:t + 1]  # pad with t0
-    res = [sigmoid(block[i + 1] - block[i]) for i in range(n - 1)]
-
-    return np.array([res])

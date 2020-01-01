@@ -1,3 +1,4 @@
+from State import State
 from agent import Agent
 from functions import *
 import sys
@@ -19,17 +20,18 @@ profits = []
 
 for e in range(episode_count + 1):
     print("Episode " + str(e) + "/" + str(episode_count))
-    state = get_state(data, 0, window_size + 1)
+    state = State(window_size + 1, data)
+    state_instance = state.get_instance(0)
 
     total_profit = 0
     agent.inventory = []
     start = time.time()
 
     for t in range(train_data_size):
-        action, count = agent.act(state)
+        action, count = agent.act(state_instance)
 
         # sit
-        next_state = get_state(data, t + 1, window_size + 1)
+        next_state = state.get_instance(t + 1)
         reward = 0
         # buy
         if action == 1 and count > 0:
@@ -50,8 +52,8 @@ for e in range(episode_count + 1):
         done = t == train_data_size - 1
         if action != 0 and count < 1:
             print("warning: wrong transaction =============")
-        agent.memory.append((state, action, count, reward, next_state, done))
-        state = next_state
+        agent.memory.append((state_instance, action, count, reward, next_state, done))
+        state_instance = next_state
 
         if done:
             end = time.time()
