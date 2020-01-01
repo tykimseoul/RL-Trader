@@ -15,14 +15,14 @@ window_size = model.layers[0].input.shape.as_list()[1]
 
 agent = Agent(window_size, True, model_name)
 data = get_stock_data(stock_name, '2019/12/22', '2019/12/24')
-l = len(data) - 1
+validation_data_size = len(data) - 1
 batch_size = 32
 
 state = get_state(data, 0, window_size + 1)
 total_profit = 0
 agent.inventory = []
 
-for t in range(l):
+for t in range(validation_data_size):
 	action = agent.act(state)
 
 	# sit
@@ -41,7 +41,7 @@ for t in range(l):
 		total_profit += data[t] - bought_price
 		print("Sell: " + format_price(data[t]) + " | Profit: " + format_price(data[t] - bought_price))
 
-	done = True if t == l - 1 else False
+	done = t == validation_data_size - 1
 	agent.memory.append((state, action, reward, next_state, done))
 	state = next_state
 

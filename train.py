@@ -12,7 +12,7 @@ stock_name, window_size, episode_count = sys.argv[1], int(sys.argv[2]), int(sys.
 
 agent = Agent(window_size)
 data = get_stock_data(stock_name, '2019/12/16', '2019/12/21')
-l = len(data) - 1
+train_data_size = len(data) - 1
 batch_size = 64
 profits = []
 
@@ -24,7 +24,7 @@ for e in range(episode_count + 1):
     agent.inventory = []
     start = time.time()
 
-    for t in range(l):
+    for t in range(train_data_size):
         action = agent.act(state)
 
         # sit
@@ -41,7 +41,7 @@ for e in range(episode_count + 1):
             total_profit += data[t] - bought_price
             print("Ep " + str(e) + "/" + str(episode_count) + ":" + str(t) + "\t" + "Sell: " + format_price(data[t]) + " | Profit: " + format_price(data[t] - bought_price))
 
-        done = True if t == l - 1 else False
+        done = t == train_data_size - 1
         agent.memory.append((state, action, reward, next_state, done))
         state = next_state
 
@@ -54,7 +54,7 @@ for e in range(episode_count + 1):
             profits.append(total_profit)
 
         if len(agent.memory) > batch_size:
-            agent.expReplay(batch_size)
+            agent.replay_experience(batch_size)
 
     if e % 100 == 0:
         agent.model.save('model/model_ep' + str(e))

@@ -17,7 +17,7 @@ class Agent:
         self.model_name = model_name
         self.is_eval = is_eval
 
-        self.gamma = 0.95
+        self.discount = 0.95
         self.epsilon = 1.0
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
@@ -42,16 +42,14 @@ class Agent:
         options = self.model.predict(state)
         return np.argmax(options[0])
 
-    def expReplay(self, batch_size):
-        mini_batch = []
-        l = len(self.memory)
-        for i in range(l - batch_size + 1, l):
-            mini_batch.append(self.memory[i])
+    def replay_experience(self, batch_size):
+        memory_size = len(self.memory)
+        mini_batch = [self.memory[i] for i in range(memory_size - batch_size + 1, memory_size)]
 
         for state, action, reward, next_state, done in mini_batch:
             target = reward
             if not done:
-                target = reward + self.gamma * np.amax(self.model.predict(next_state)[0])
+                target = reward + self.discount * np.amax(self.model.predict(next_state)[0])
 
             target_f = self.model.predict(state)
             target_f[0][action] = target
