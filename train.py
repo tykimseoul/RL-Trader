@@ -11,7 +11,7 @@ if len(sys.argv) != 4:
 stock_name, window_size, episode_count = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 
 agent = Agent(window_size)
-data = get_stock_data(stock_name, '2019-06-01', '2019-10-01')
+data = get_stock_data(stock_name, '2019/12/16', '2019/12/21')
 l = len(data) - 1
 batch_size = 64
 profits = []

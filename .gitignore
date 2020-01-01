@@ -3,3 +3,7 @@
 __pycache__
 model
 *.png
+*.xls
+*.csv
+*.xlsx
+*.pem
