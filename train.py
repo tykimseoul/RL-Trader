@@ -12,15 +12,16 @@ if len(sys.argv) != 4:
 
 stock_name, window_size, episode_count = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 
-agent = Agent(window_size)
-data = get_stock_data(stock_name, '2019/12/16', '2019/12/21')
-train_data_size = len(data) - 1
+stock_data, kospi_data = get_stock_data(stock_name, '2019/12/16', '2019/12/21')
+state = State(window_size + 1, stock_data, kospi_data)
+
+agent = Agent(state.size())
+train_data_size = len(stock_data) - 1
 batch_size = 64
 profits = []
 
 for e in range(episode_count + 1):
     print("Episode " + str(e) + "/" + str(episode_count))
-    state = State(window_size + 1, data)
     state_instance = state.get_instance(0)
 
     total_profit = 0
@@ -36,17 +37,17 @@ for e in range(episode_count + 1):
         # buy
         if action == 1 and count > 0:
             for _ in range(count):
-                agent.inventory.append(data[t])
-            print('Ep {ep}/{ep_count}:{m}\tBuy {cnt}:\t{price}'.format(ep=e, ep_count=episode_count, m=t, cnt=count, price=format_price(data[t] * count)))
+                agent.inventory.append(stock_data[t])
+            print('Ep {ep}/{ep_count}:{m}\tBuy {cnt}:\t{price}'.format(ep=e, ep_count=episode_count, m=t, cnt=count, price=format_price(stock_data[t] * count)))
         # sell
         elif action == 2 and count > 0 and len(agent.inventory) > 0:
             sellable_count = min(count, len(agent.inventory))
             purchase_sum = reduce((lambda x, y: x + y), [agent.inventory.pop() for p in range(sellable_count)])
-            profit = data[t] * sellable_count - purchase_sum
+            profit = stock_data[t] * sellable_count - purchase_sum
             reward = max(profit, 0)
             total_profit += profit
             count = sellable_count
-            print('Ep {ep}/{ep_count}:{m}\tSell {cnt}:\t{price} | Profit:\t{profit}'.format(ep=e, ep_count=episode_count, m=t, cnt=sellable_count, price=format_price(data[t] * sellable_count),
+            print('Ep {ep}/{ep_count}:{m}\tSell {cnt}:\t{price} | Profit:\t{profit}'.format(ep=e, ep_count=episode_count, m=t, cnt=sellable_count, price=format_price(stock_data[t] * sellable_count),
                                                                                             profit=format_price(profit)))
 
         done = t == train_data_size - 1

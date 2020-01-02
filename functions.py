@@ -15,6 +15,13 @@ def format_time(t):
 
 # returns the vector containing stock data from a fixed file
 def get_stock_data(name, start, end):
+    stock_data = import_csv(name, start, end)
+    kospi_data = import_csv('kospi', start, end)
+
+    return stock_data, kospi_data
+
+
+def import_csv(name, start, end):
     df = pd.read_csv(name + '.csv')
     df.dropna(inplace=True)
     df['Time'] = df['Time'].str[:-3]
